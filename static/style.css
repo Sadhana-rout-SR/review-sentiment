@@ -1250,3 +1250,37 @@ body,
 .main {
     overflow-x: hidden;
 }
+/* Loading Spinner */
+.spinner {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #1a73e8;
+    color: white;
+    padding: 14px 22px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    z-index: 9999;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    animation: pulse 1s infinite;
+}
+
+.hidden {
+    display: none;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 0.85;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
