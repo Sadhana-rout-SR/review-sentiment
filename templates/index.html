@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Sentiment Analyzer Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/lucide@latest/dist/umd/lucide.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@500;600;700&display=swap">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body class="light-theme">
+
+<!-- 🔹 EXTRA: Loading Spinner (ADD ONLY) -->
+<div id="loadingSpinner" class="hidden spinner">
+    🔍 Analyzing reviews… Please wait
+</div>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <img src="{{ url_for('static', filename='profile.png') }}" class="sidebar-profile" alt="Profile">
+    <a href="#" class="active" data-section="analyzer">
+        <i data-lucide="search" class="sidebar-icon"></i>
+        Sentiment Analyzer
+    </a>
+    <a href="#" data-section="reports">
+        <i data-lucide="bar-chart-3" class="sidebar-icon"></i>
+        Reports
+    </a>
+    <a href="#" data-section="settings">
+        <i data-lucide="settings" class="sidebar-icon"></i>
+        Settings
+    </a>
+    <a href="#" data-section="help">
+        <i data-lucide="help-circle" class="sidebar-icon"></i>
+        Help
+    </a>
+</div>
+
+<!-- Main -->
+<div class="main">
+    <div class="topbar">
+        <img src="{{ url_for('static', filename='favicon.png') }}" class="dashboard-icon" alt="Sentilytics">
+        <h1>Sentilytics</h1>
+        <span id="reviewSourceBadge" class="source-badge hidden">Source: --</span>
+        <a id="reviewSourceLink" class="source-link hidden" target="_blank" rel="noopener noreferrer">Open Google Place</a>
+        <div class="topbar-auth-links">
+            {% if current_user %}
+                {% if current_user.role == 'admin' %}
+                    <a class="topbar-auth-link" href="{{ url_for('admin_panel') }}">Admin Panel</a>
+                {% endif %}
+                <a class="topbar-auth-link" href="{{ url_for('auth_logout') }}">Logout ({{ current_user.username }})</a>
+            {% else %}
+                <a class="topbar-auth-link" href="{{ url_for('auth_login') }}">Login</a>
+                <a class="topbar-auth-link" href="{{ url_for('auth_register') }}">Register</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Analyzer -->
+    <div class="section active" id="analyzerSection">
+        <div class="analyzer-grid">
+            <!-- URL Input Card -->
+            <div class="card">
+                <h2>
+                    <i data-lucide="globe" class="card-icon"></i>
+                    Enter Website URL
+                </h2>
+                <form id="sentimentForm">
+                    <div class="input-group">
+                        <i data-lucide="link" class="input-icon"></i>
+                        <input type="text" id="url" placeholder="https://example.com" required>
+                    </div>
+                    <div class="button-group">
+                        <button type="submit">
+                            <i data-lucide="play" class="button-icon"></i>
+                            Analyze Reviews
+                        </button>
+                        <button type="button" id="collectOriginalReviews">
+                            <i data-lucide="messages-square" class="button-icon"></i>
+                            Collect Original Reviews
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Sentiment Chart Card -->
+            <div class="card chart-card">
+                <h2>
+                    <i data-lucide="pie-chart" class="card-icon"></i>
+                    Sentiment Analysis
+                </h2>
+                <div class="chart-container">
+                    <canvas id="pieChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reviews Analysis Card -->
+        <div class="card hidden" id="reviewCard">
+            <h2>
+                <i data-lucide="message-square" class="card-icon"></i>
+                Reviews Analysis
+            </h2>
+
+            <div id="reviewWarning" class="review-warning hidden"></div>
+
+            <!-- Review Search -->
+            <div class="input-group">
+                <i data-lucide="search" class="input-icon"></i>
+                <input type="text" id="reviewSearch" placeholder="Search reviews...">
+            </div>
+
+            <div id="reviewsContainer"></div>
+        </div>
+
+        <div class="card hidden" id="originalReviewCard">
+            <h2>
+                <i data-lucide="message-circle-heart" class="card-icon"></i>
+                Original Customer Reviews
+            </h2>
+            <div class="input-group">
+                <i data-lucide="search" class="input-icon"></i>
+                <input type="text" id="originalReviewSearch" placeholder="Search original reviews...">
+            </div>
+            <div id="originalReviewMeta" class="review-warning hidden"></div>
+            <div id="originalReviewsContainer"></div>
+        </div>
+    </div>
+
+    <!-- Reports -->
+    <div class="section" id="reportsSection">
+        <div class="card">
+            <h2>
+                <i data-lucide="calendar-days" class="card-icon"></i>
+                Daily Review Performance
+            </h2>
+            <div class="kpi-grid">
+                <div class="kpi-item">
+                    <div class="kpi-label">Today Reviews</div>
+                    <div class="kpi-value" id="todayReviews">0</div>
+                </div>
+                <div class="kpi-item">
+                    <div class="kpi-label">Yesterday Reviews</div>
+                    <div class="kpi-value" id="yesterdayReviews">0</div>
+                </div>
+                <div class="kpi-item">
+                    <div class="kpi-label">Daily Growth %</div>
+                    <div class="kpi-value" id="growthPercent">0%</div>
+                </div>
+                <div class="kpi-item">
+                    <div class="kpi-label">Avg Reviews / Day</div>
+                    <div class="kpi-value" id="avgDailyReviews">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="reports-grid">
+            <!-- Statistics Overview -->
+            <div class="card stats-card">
+                <h2>
+                    <i data-lucide="bar-chart-3" class="card-icon"></i>
+                    Sentiment Summary
+                </h2>
+                <div class="report-meta" id="reportDataSource">Showing: Historical 14-day data</div>
+                <div class="report-mode-toggle" id="reportModeToggle">
+                    <button type="button" class="report-mode-btn" id="modeAnalyzer">Current Analysis</button>
+                    <button type="button" class="report-mode-btn active" id="modeHistorical">Historical 14-day</button>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <i data-lucide="file-text" class="stat-icon"></i>
+                        <div>
+                            <div class="stat-number" id="totalReviews">0</div>
+                            <div class="stat-label">Total Reviews</div>
+                        </div>
+                    </div>
+                    <div class="stat-item positive">
+                        <i data-lucide="thumbs-up" class="stat-icon"></i>
+                        <div>
+                            <div class="stat-number" id="positiveCount">0</div>
+                            <div class="stat-label">Positive</div>
+                        </div>
+                    </div>
+                    <div class="stat-item negative">
+                        <i data-lucide="thumbs-down" class="stat-icon"></i>
+                        <div>
+                            <div class="stat-number" id="negativeCount">0</div>
+                            <div class="stat-label">Negative</div>
+                        </div>
+                    </div>
+                    <div class="stat-item neutral">
+                        <i data-lucide="minus" class="stat-icon"></i>
+                        <div>
+                            <div class="stat-number" id="neutralCount">0</div>
+                            <div class="stat-label">Neutral</div>
+                        </div>
+                    </div>
+                    <div class="stat-item fake">
+                        <i data-lucide="alert-circle" class="stat-icon"></i>
+                        <div>
+                            <div class="stat-number" id="fakeCount">0</div>
+                            <div class="stat-label">Fake Reviews</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Export Options -->
+            <div class="card export-card">
+                <h2>
+                    <i data-lucide="download" class="card-icon"></i>
+                    Export Options
+                </h2>
+                <div class="button-group">
+                    <button id="exportReport">
+                        <i data-lucide="file-spreadsheet" class="button-icon"></i>
+                        Export CSV
+                    </button>
+                    <button id="collectDataset">
+                        <i data-lucide="database" class="button-icon"></i>
+                        Collect Original Dataset CSV
+                    </button>
+                    <button onclick="window.print()">
+                        <i data-lucide="printer" class="button-icon"></i>
+                        Print Report
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Historical Chart - Full Width -->
+        <div class="card chart-fullwidth">
+            <h2>
+                <i data-lucide="trending-up" class="card-icon"></i>
+                <span id="reviewCountChartTitle">Day-wise Review Count</span>
+            </h2>
+            <div class="chart-container">
+                <canvas id="historicalChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card chart-fullwidth">
+            <h2>
+                <i data-lucide="activity" class="card-icon"></i>
+                <span id="sentimentTrendChartTitle">Day-wise Sentiment Trend</span>
+            </h2>
+            <div class="chart-container">
+                <canvas id="dailySentimentChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="section" id="settingsSection">
+        <div class="settings-grid">
+            <!-- Appearance Settings -->
+            <div class="card">
+                <h2>
+                    <i data-lucide="palette" class="card-icon"></i>
+                    Appearance
+                </h2>
+                <div class="setting-group">
+                    <label for="themeSelect">Theme:</label>
+                    <select id="themeSelect">
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Analysis Settings -->
+            <div class="card">
+                <h2>
+                    <i data-lucide="settings-2" class="card-icon"></i>
+                    Analysis Settings
+                </h2>
+                <div class="setting-group">
+                    <label for="maxReviews">Max Reviews:</label>
+                    <input type="number" id="maxReviews" value="100" min="1" max="1000">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help -->
+    <div class="section" id="helpSection">
+        <div class="card">
+            <h2>
+                <i data-lucide="help-circle" class="card-icon"></i>
+                How to Use
+            </h2>
+            <div class="help-content">
+                <div class="help-step">
+                    <i data-lucide="arrow-right" class="help-icon"></i>
+                    <div>
+                        <strong>Enter URL:</strong> Paste the website URL you want to analyze
+                    </div>
+                </div>
+                <div class="help-step">
+                    <i data-lucide="arrow-right" class="help-icon"></i>
+                    <div>
+                        <strong>Click Analyze:</strong> Our AI will fetch and analyze reviews
+                    </div>
+                </div>
+                <div class="help-step">
+                    <i data-lucide="arrow-right" class="help-icon"></i>
+                    <div>
+                        <strong>View Results:</strong> Check sentiment chart and detailed reviews
+                    </div>
+                </div>
+                <div class="help-step">
+                    <i data-lucide="arrow-right" class="help-icon"></i>
+                    <div>
+                        <strong>Export Data:</strong> Download CSV or print reports
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+window.historicalChartInstance = null;
+window.dailySentimentChartInstance = null;
+window.activeReportSource = "historical";
+window.lastHistoricalSummary = null;
+window.lastAnalyzerSummary = null;
+
+function escapeHtml(value) {
+    const str = String(value || "");
+    return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+async function updateDailyAnalytics() {
+    try {
+        const resp = await fetch("/analytics/daily?days=14&verified_only=true&include_website=true");
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (!data || !Array.isArray(data.daily) || !data.summary) return;
+
+        const labels = data.daily.map(item => item.date);
+        const reviews = data.daily.map(item => item.reviews);
+        const positives = data.daily.map(item => item.positive);
+        const negatives = data.daily.map(item => item.negative);
+        const neutrals = data.daily.map(item => item.neutral);
+
+        const totalReviewCount = reviews.reduce((acc, value) => acc + Number(value || 0), 0);
+        const totalPositiveCount = positives.reduce((acc, value) => acc + Number(value || 0), 0);
+        const totalNegativeCount = negatives.reduce((acc, value) => acc + Number(value || 0), 0);
+        const totalNeutralCount = neutrals.reduce((acc, value) => acc + Number(value || 0), 0);
+        window.lastHistoricalSummary = {
+            totalReviews: totalReviewCount,
+            positive: totalPositiveCount,
+            negative: totalNegativeCount,
+            neutral: totalNeutralCount,
+            fake: 0,
+        };
+
+        if (window.activeReportSource !== "analyzer") {
+            const todayReviews = document.getElementById("todayReviews");
+            const yesterdayReviews = document.getElementById("yesterdayReviews");
+            const growthPercent = document.getElementById("growthPercent");
+            const avgDailyReviews = document.getElementById("avgDailyReviews");
+
+            if (todayReviews) todayReviews.innerText = data.summary.today_reviews ?? 0;
+            if (yesterdayReviews) yesterdayReviews.innerText = data.summary.yesterday_reviews ?? 0;
+            if (avgDailyReviews) avgDailyReviews.innerText = data.summary.avg_daily_reviews ?? 0;
+            if (growthPercent) {
+                const growth = Number(data.summary.growth_pct ?? 0);
+                growthPercent.innerText = `${growth}%`;
+                growthPercent.classList.remove("kpi-up", "kpi-down");
+                growthPercent.classList.add(growth >= 0 ? "kpi-up" : "kpi-down");
+            }
+        }
+
+        // Keep reports summary stable: if user has analyzed a URL in this session,
+        // keep report cards bound to that snapshot instead of auto-overwriting.
+        const totalReviewsEl = document.getElementById("totalReviews");
+        const positiveCountEl = document.getElementById("positiveCount");
+        const negativeCountEl = document.getElementById("negativeCount");
+        const neutralCountEl = document.getElementById("neutralCount");
+        const fakeCountEl = document.getElementById("fakeCount");
+        const reportSourceEl = document.getElementById("reportDataSource");
+        if (window.activeReportSource !== "analyzer") {
+            if (totalReviewsEl) totalReviewsEl.innerText = totalReviewCount;
+            if (positiveCountEl) positiveCountEl.innerText = totalPositiveCount;
+            if (negativeCountEl) negativeCountEl.innerText = totalNegativeCount;
+            if (neutralCountEl) neutralCountEl.innerText = totalNeutralCount;
+            // Daily analytics endpoint stores only validated sentiment rows.
+            if (fakeCountEl) fakeCountEl.innerText = "0";
+            if (reportSourceEl) reportSourceEl.innerText = "Showing: Historical 14-day data";
+        }
+
+        if (window.activeReportSource === "analyzer") {
+            return;
+        }
+
+        const histChartEl = document.getElementById("historicalChart");
+        if (histChartEl) {
+            const ctx = histChartEl.getContext("2d");
+            if (window.historicalChartInstance) window.historicalChartInstance.destroy();
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, histChartEl.height || 320);
+            gradient.addColorStop(0, "rgba(26, 115, 232, 0.35)");
+            gradient.addColorStop(0.55, "rgba(26, 115, 232, 0.14)");
+            gradient.addColorStop(1, "rgba(26, 115, 232, 0.03)");
+
+            window.historicalChartInstance = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels,
+                    datasets: [{
+                        label: "Reviews",
+                        data: reviews,
+                        borderColor: "#1a73e8",
+                        backgroundColor: gradient,
+                        borderWidth: 4,
+                        tension: 0.42,
+                        fill: true,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointHitRadius: 14,
+                        pointBackgroundColor: "#ffffff",
+                        pointBorderColor: "#1a73e8",
+                        pointBorderWidth: 2,
+                        cubicInterpolationMode: "monotone",
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: "index",
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                usePointStyle: true,
+                                pointStyle: "circle",
+                                padding: 16,
+                                boxWidth: 10,
+                                color: "#385074"
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: "rgba(14, 28, 52, 0.92)",
+                            titleColor: "#eaf2ff",
+                            bodyColor: "#eaf2ff",
+                            borderColor: "rgba(115, 168, 255, 0.45)",
+                            borderWidth: 1,
+                            padding: 10,
+                            displayColors: false,
+                            callbacks: {
+                                label: (context) => ` Reviews: ${context.parsed.y}`,
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: "rgba(122, 150, 196, 0.16)", drawBorder: false },
+                            ticks: { color: "#5f7391", maxRotation: 0, autoSkip: true, autoSkipPadding: 12 }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0, color: "#5f7391" },
+                            grid: { color: "rgba(122, 150, 196, 0.14)", drawBorder: false }
+                        }
+                    },
+                    animation: {
+                        duration: 900,
+                        easing: "easeOutQuart"
+                    }
+                }
+            });
+        }
+
+        const sentimentChartEl = document.getElementById("dailySentimentChart");
+        if (sentimentChartEl) {
+            const ctx = sentimentChartEl.getContext("2d");
+            if (window.dailySentimentChartInstance) window.dailySentimentChartInstance.destroy();
+            window.dailySentimentChartInstance = new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels,
+                    datasets: [
+                        { label: "Positive", data: positives, backgroundColor: "#0ea271" },
+                        { label: "Negative", data: negatives, backgroundColor: "#e5484d" },
+                        { label: "Neutral", data: neutrals, backgroundColor: "#6b7280" }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { stacked: true },
+                        y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }
+                    }
+                }
+            });
+        }
+    } catch (err) {
+        console.error("Daily analytics error:", err);
+    }
+}
+
+function setReportKpiFromAnalyzer(totalReviews) {
+    const todayReviews = document.getElementById("todayReviews");
+    const yesterdayReviews = document.getElementById("yesterdayReviews");
+    const growthPercent = document.getElementById("growthPercent");
+    const avgDailyReviews = document.getElementById("avgDailyReviews");
+
+    const total = Number(totalReviews || 0);
+    const growth = total > 0 ? 100 : 0;
+
+    if (todayReviews) todayReviews.innerText = total;
+    if (yesterdayReviews) yesterdayReviews.innerText = 0;
+    if (avgDailyReviews) avgDailyReviews.innerText = total;
+    if (growthPercent) {
+        growthPercent.innerText = `${growth}%`;
+        growthPercent.classList.remove("kpi-up", "kpi-down");
+        growthPercent.classList.add(growth >= 0 ? "kpi-up" : "kpi-down");
+    }
+}
+
+function renderAnalyzerModeCharts(summary) {
+    const safe = summary || { totalReviews: 0, positive: 0, negative: 0, neutral: 0, fake: 0 };
+
+    const histChartEl = document.getElementById("historicalChart");
+    if (histChartEl) {
+        const ctx = histChartEl.getContext("2d");
+        if (window.historicalChartInstance) window.historicalChartInstance.destroy();
+        window.historicalChartInstance = new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: ["Current Analysis"],
+                datasets: [{
+                    label: "Reviews",
+                    data: [Number(safe.totalReviews || 0)],
+                    backgroundColor: "rgba(26, 115, 232, 0.28)",
+                    borderColor: "#1a73e8",
+                    borderWidth: 2,
+                    borderRadius: 10,
+                    maxBarThickness: 90,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true }
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { precision: 0 } }
+                }
+            }
+        });
+    }
+
+    const sentimentChartEl = document.getElementById("dailySentimentChart");
+    if (sentimentChartEl) {
+        const ctx = sentimentChartEl.getContext("2d");
+        if (window.dailySentimentChartInstance) window.dailySentimentChartInstance.destroy();
+        window.dailySentimentChartInstance = new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: ["Current Analysis"],
+                datasets: [
+                    { label: "Positive", data: [Number(safe.positive || 0)], backgroundColor: "#0ea271" },
+                    { label: "Negative", data: [Number(safe.negative || 0)], backgroundColor: "#e5484d" },
+                    { label: "Neutral", data: [Number(safe.neutral || 0)], backgroundColor: "#6b7280" },
+                    { label: "Fake", data: [Number(safe.fake || 0)], backgroundColor: "#8b5cf6" }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, ticks: { precision: 0 } }
+                }
+            }
+        });
+    }
+}
+
+function setReportChartTitles(mode) {
+    const reviewCountTitle = document.getElementById("reviewCountChartTitle");
+    const sentimentTrendTitle = document.getElementById("sentimentTrendChartTitle");
+    const isAnalyzer = mode === "analyzer";
+
+    if (reviewCountTitle) {
+        reviewCountTitle.innerText = isAnalyzer ? "Current Analysis Snapshot" : "Day-wise Review Count";
+    }
+    if (sentimentTrendTitle) {
+        sentimentTrendTitle.innerText = isAnalyzer ? "Current Analysis Sentiment Mix" : "Day-wise Sentiment Trend";
+    }
+}
+
+function setReportMode(mode) {
+    const analyzerBtn = document.getElementById("modeAnalyzer");
+    const historicalBtn = document.getElementById("modeHistorical");
+    const reportSourceEl = document.getElementById("reportDataSource");
+
+    const resolved = mode === "analyzer" ? "analyzer" : "historical";
+    window.activeReportSource = resolved;
+    setReportChartTitles(resolved);
+
+    if (analyzerBtn) analyzerBtn.classList.toggle("active", resolved === "analyzer");
+    if (historicalBtn) historicalBtn.classList.toggle("active", resolved === "historical");
+
+    if (resolved === "historical") {
+        const summary = window.lastHistoricalSummary || {
+            totalReviews: 0,
+            positive: 0,
+            negative: 0,
+            neutral: 0,
+            fake: 0,
+        };
+
+        const totalReviewsEl = document.getElementById("totalReviews");
+        const positiveCountEl = document.getElementById("positiveCount");
+        const negativeCountEl = document.getElementById("negativeCount");
+        const neutralCountEl = document.getElementById("neutralCount");
+        const fakeCountEl = document.getElementById("fakeCount");
+
+        if (totalReviewsEl) totalReviewsEl.innerText = Number(summary.totalReviews || 0);
+        if (positiveCountEl) positiveCountEl.innerText = Number(summary.positive || 0);
+        if (negativeCountEl) negativeCountEl.innerText = Number(summary.negative || 0);
+        if (neutralCountEl) neutralCountEl.innerText = Number(summary.neutral || 0);
+        if (fakeCountEl) fakeCountEl.innerText = Number(summary.fake || 0);
+        if (reportSourceEl) reportSourceEl.innerText = "Showing: Historical 14-day data";
+    } else {
+        const summary = window.lastAnalyzerSummary;
+        if (!summary) {
+            if (reportSourceEl) reportSourceEl.innerText = "Showing: Current analyzer result (run Analyze first)";
+            return;
+        }
+
+        const totalReviewsEl = document.getElementById("totalReviews");
+        const positiveCountEl = document.getElementById("positiveCount");
+        const negativeCountEl = document.getElementById("negativeCount");
+        const neutralCountEl = document.getElementById("neutralCount");
+        const fakeCountEl = document.getElementById("fakeCount");
+
+        if (totalReviewsEl) totalReviewsEl.innerText = Number(summary.totalReviews || 0);
+        if (positiveCountEl) positiveCountEl.innerText = Number(summary.positive || 0);
+        if (negativeCountEl) negativeCountEl.innerText = Number(summary.negative || 0);
+        if (neutralCountEl) neutralCountEl.innerText = Number(summary.neutral || 0);
+        if (fakeCountEl) fakeCountEl.innerText = Number(summary.fake || 0);
+
+        setReportKpiFromAnalyzer(summary.totalReviews || 0);
+        renderAnalyzerModeCharts(summary);
+        if (reportSourceEl) reportSourceEl.innerText = "Showing: Current analyzer result";
+    }
+}
+
+function setReportSummaryFromAnalyzer(counts, totalRaw, totalFiltered) {
+    const totalReviewsEl = document.getElementById("totalReviews");
+    const positiveCountEl = document.getElementById("positiveCount");
+    const negativeCountEl = document.getElementById("negativeCount");
+    const neutralCountEl = document.getElementById("neutralCount");
+    const fakeCountEl = document.getElementById("fakeCount");
+    const reportSourceEl = document.getElementById("reportDataSource");
+
+    const safeCounts = counts || { Positive: 0, Negative: 0, Neutral: 0, Fake: 0 };
+    const total = Number(totalFiltered || 0);
+    const fake = Number(safeCounts.Fake || Math.max(0, Number(totalRaw || 0) - total));
+
+    if (totalReviewsEl) totalReviewsEl.innerText = total;
+    if (positiveCountEl) positiveCountEl.innerText = Number(safeCounts.Positive || 0);
+    if (negativeCountEl) negativeCountEl.innerText = Number(safeCounts.Negative || 0);
+    if (neutralCountEl) neutralCountEl.innerText = Number(safeCounts.Neutral || 0);
+    if (fakeCountEl) fakeCountEl.innerText = fake;
+    if (reportSourceEl) reportSourceEl.innerText = "Showing: Current analyzer result";
+
+    window.lastAnalyzerSummary = {
+        totalReviews: total,
+        positive: Number(safeCounts.Positive || 0),
+        negative: Number(safeCounts.Negative || 0),
+        neutral: Number(safeCounts.Neutral || 0),
+        fake: fake,
+    };
+
+    setReportKpiFromAnalyzer(total);
+    setReportMode("analyzer");
+}
+
+document.getElementById("modeAnalyzer")?.addEventListener("click", () => {
+    setReportMode("analyzer");
+});
+
+document.getElementById("modeHistorical")?.addEventListener("click", () => {
+    setReportMode("historical");
+    updateDailyAnalytics();
+});
+
+/* Sidebar navigation (YOUR CODE – UNCHANGED) */
+document.querySelectorAll('.sidebar a').forEach(link => {
+    link.addEventListener('click', e => {
+        e.preventDefault();
+        document.querySelectorAll('.sidebar a').forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById(link.dataset.section + "Section").classList.add('active');
+        if (link.dataset.section === "reports") {
+            updateDailyAnalytics();
+        }
+    });
+});
+
+/* Theme (UNCHANGED) */
+document.getElementById("themeSelect").addEventListener("change", function(){
+    document.body.className = this.value + "-theme";
+});
+
+/* 🔹 EXTRA: Spinner */
+const spinner = document.getElementById("loadingSpinner");
+
+/* Analyze (YOUR LOGIC + ADD-ONLY spinner & historical chart) */
+document.getElementById("sentimentForm").addEventListener("submit", async e => {
+    e.preventDefault();
+
+    let url = document.getElementById("url").value;
+    if(!url.startsWith("http")){
+        alert("Please enter a valid URL");
+        return;
+    }
+
+    spinner.classList.remove("hidden");
+
+    let maxReviews = document.getElementById("maxReviews").value;
+    let formData = new FormData();
+    formData.append("url", url);
+    formData.append("max_reviews", maxReviews);
+
+    try {
+        let resp = await fetch("/analyze", {method:"POST", body:formData});
+
+        if (!resp.ok) {
+            throw new Error(`HTTP error! status: ${resp.status}`);
+        }
+
+        let data = await resp.json();
+
+        spinner.classList.add("hidden");
+
+        // Check if response has expected structure
+        if (!data || typeof data !== 'object') {
+            throw new Error("Invalid response format from server");
+        }
+
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+        const sourceBadge = document.getElementById("reviewSourceBadge");
+        const sourceLink = document.getElementById("reviewSourceLink");
+        const reviewWarning = document.getElementById("reviewWarning");
+        if (sourceBadge) {
+            const source = (data.review_source || "website").toLowerCase();
+            const method = (data.review_source_method || "").toLowerCase();
+            sourceBadge.classList.remove("hidden", "source-google", "source-website");
+            sourceBadge.classList.add(source === "google" ? "source-google" : "source-website");
+            if (source === "google") {
+                sourceBadge.innerText = method === "google_places_api" ? "Source: Google Reviews (Official API)" : "Source: Google Reviews (Maps Read)";
+            } else {
+                sourceBadge.innerText = "Source: Website Reviews";
+            }
+        }
+
+        if (sourceLink) {
+            if (data.google_place_url) {
+                sourceLink.href = data.google_place_url;
+                sourceLink.classList.remove("hidden");
+                sourceLink.innerText = data.google_place_name ? `Open ${data.google_place_name}` : "Open Google Place";
+            } else {
+                sourceLink.classList.add("hidden");
+                sourceLink.removeAttribute("href");
+            }
+        }
+
+        if (reviewWarning) {
+            if (data.no_real_reviews && data.warning_message) {
+                reviewWarning.innerText = data.warning_message;
+                reviewWarning.classList.remove("hidden");
+            } else {
+                reviewWarning.classList.add("hidden");
+                reviewWarning.innerText = "";
+            }
+        }
+
+        if (!data.url_reviews || !Array.isArray(data.url_reviews) || data.url_reviews.length === 0) {
+            document.getElementById("reviewCard").classList.remove("hidden");
+            const container = document.getElementById("reviewsContainer");
+            if (container) {
+                container.innerHTML = "<div class='review empty-review'>No review records available for this URL yet.</div>";
+            }
+
+            const totalRaw = Number(data.raw_count || 0);
+            setReportSummaryFromAnalyzer({ Positive: 0, Negative: 0, Neutral: 0, Fake: totalRaw }, totalRaw, 0);
+
+            // Reset chart + counters to avoid showing stale data from previous run.
+            if (window.pieChartInstance) {
+                window.pieChartInstance.destroy();
+                window.pieChartInstance = null;
+            }
+            return;
+        }
+
+        // Show the review card
+        document.getElementById("reviewCard").classList.remove("hidden");
+
+        let counts = { Positive:0, Negative:0, Neutral:0, Fake:0 };
+        
+        // Track raw vs filtered reviews to count fake reviews
+        const totalRaw = data.raw_count || data.url_reviews.length;
+        const totalFiltered = data.url_reviews.length;
+        const fakeReviewCount = Math.max(0, totalRaw - totalFiltered);
+        counts.Fake = fakeReviewCount;
+        
+        data.url_reviews.forEach(r => {
+            if (r && r.sentiment && typeof r.sentiment === 'string') {
+                const sentiment = r.sentiment.charAt(0).toUpperCase() + r.sentiment.slice(1).toLowerCase();
+                if (counts.hasOwnProperty(sentiment)) {
+                    counts[sentiment]++;
+                }
+            }
+        });
+
+        /* Pie Chart with Enhanced Styling - 4 Categories with Count & Percentage */
+        let ctx = document.getElementById("pieChart").getContext("2d");
+        if(window.pieChartInstance) window.pieChartInstance.destroy();
+        
+        const total = counts.Positive + counts.Negative + counts.Neutral + counts.Fake;
+        const positivePercent = total > 0 ? ((counts.Positive / total) * 100).toFixed(1) : 0;
+        const negativePercent = total > 0 ? ((counts.Negative / total) * 100).toFixed(1) : 0;
+        const neutralPercent = total > 0 ? ((counts.Neutral / total) * 100).toFixed(1) : 0;
+        const fakePercent = total > 0 ? ((counts.Fake / total) * 100).toFixed(1) : 0;
+        
+        window.pieChartInstance = new Chart(ctx, {
+            type:"pie",
+            data:{
+                labels:[
+                    `Positive (${counts.Positive}) ${positivePercent}%`,
+                    `Negative (${counts.Negative}) ${negativePercent}%`,
+                    `Neutral (${counts.Neutral}) ${neutralPercent}%`,
+                    `Fake (${counts.Fake}) ${fakePercent}%`
+                ],
+                datasets:[{
+                    data:[counts.Positive, counts.Negative, counts.Neutral, counts.Fake],
+                    backgroundColor: [
+                        '#10b981',  // Green - Positive
+                        '#ef4444',  // Red - Negative
+                        '#6b7280',  // Gray - Neutral
+                        '#8b5cf6'   // Purple - Fake
+                    ],
+                    borderColor: [
+                        '#059669',  // Dark Green
+                        '#dc2626',  // Dark Red
+                        '#4b5563',  // Dark Gray
+                        '#7c3aed'   // Dark Purple
+                    ],
+                    borderWidth: 2,
+                    hoverBorderWidth: 3,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: { size: 13, weight: '500' },
+                            color: '#385074',
+                            generateLabels: function(chart) {
+                                const datasets = chart.data.datasets;
+                                const labels = chart.data.labels;
+                                return labels.map((label, i) => ({
+                                    text: label,
+                                    fillStyle: datasets[0].backgroundColor[i],
+                                    hidden: false,
+                                    index: i,
+                                    pointStyle: 'circle'
+                                }));
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: "rgba(14, 28, 52, 0.95)",
+                        titleColor: "#eaf2ff",
+                        bodyColor: "#eaf2ff",
+                        borderColor: "rgba(115, 168, 255, 0.5)",
+                        borderWidth: 1,
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                const labels = ['Positive', 'Negative', 'Neutral', 'Fake'];
+                                const label = labels[context.dataIndex] || '';
+                                const value = context.parsed || 0;
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        /* Reviews */
+        let container = document.getElementById("reviewsContainer");
+        if (container) {
+            container.innerHTML="";
+            data.url_reviews.forEach((r,i)=>{
+                container.innerHTML+=`
+                <div class="review ${r.sentiment.toLowerCase()}">
+                    <strong>Review ${i+1}</strong>
+                    <span class="badge ${r.sentiment.toLowerCase()}">${r.sentiment}</span>
+                    <p>${r.text}</p>
+                </div>`;
+            });
+        }
+
+        setReportSummaryFromAnalyzer(counts, totalRaw, totalFiltered);
+
+        window.lastAnalyzedReviews = data.url_reviews;
+
+    } catch (error) {
+        spinner.classList.add("hidden");
+        console.error('Error:', error);
+        alert("Error analyzing reviews: " + error.message + ". Please try again.");
+    }
+});
+
+document.getElementById("collectOriginalReviews").addEventListener("click", async () => {
+    const url = (document.getElementById("url").value || "").trim();
+    if (!url.startsWith("http")) {
+        alert("Please enter a valid URL first.");
+        return;
+    }
+
+    spinner.classList.remove("hidden");
+    const metaEl = document.getElementById("originalReviewMeta");
+    const cardEl = document.getElementById("originalReviewCard");
+    const container = document.getElementById("originalReviewsContainer");
+
+    try {
+        const maxReviews = document.getElementById("maxReviews").value;
+        const formData = new FormData();
+        formData.append("url", url);
+        formData.append("max_reviews", maxReviews);
+
+        const resp = await fetch("/reviews/collect", { method: "POST", body: formData });
+        const data = await resp.json();
+        if (!resp.ok) {
+            throw new Error(data.error || "Unable to collect original customer reviews");
+        }
+
+        cardEl.classList.remove("hidden");
+        const source = (data.source || "website").toUpperCase();
+        metaEl.innerText = `Source: ${source} | Rows: ${data.total_rows}`;
+        metaEl.classList.remove("hidden");
+
+        const rows = Array.isArray(data.rows) ? data.rows : [];
+        if (!rows.length) {
+            container.innerHTML = "<div class='review empty-review'>No original reviews were returned.</div>";
+            return;
+        }
+
+        container.innerHTML = rows.map((row, index) => {
+            const text = escapeHtml(row.text || "");
+            const author = escapeHtml(row.author || "Anonymous");
+            const rating = escapeHtml(row.rating || "N/A");
+            const publishedAt = escapeHtml(row.published_at || "Unknown date");
+            const sourceType = escapeHtml(row.source_type || "website");
+            const permalink = row.permalink ? `<a href="${escapeHtml(row.permalink)}" target="_blank" rel="noopener noreferrer">Open Source</a>` : "";
+
+            return `
+                <div class="review original-review">
+                    <strong>Customer Review ${index + 1}</strong>
+                    <span class="badge neutral">${sourceType}</span>
+                    <div class="original-review-meta">By: ${author} | Rating: ${rating} | Date: ${publishedAt}</div>
+                    <p>${text}</p>
+                    ${permalink ? `<div class="original-review-link">${permalink}</div>` : ""}
+                </div>
+            `;
+        }).join("");
+    } catch (error) {
+        if (metaEl) {
+            metaEl.classList.remove("hidden");
+            metaEl.innerText = error.message;
+        }
+        if (container) {
+            container.innerHTML = "<div class='review empty-review'>Could not collect original reviews for this URL.</div>";
+        }
+    } finally {
+        spinner.classList.add("hidden");
+    }
+});
+
+/* 🔹 EXTRA: Review Search */
+document.getElementById("reviewSearch").addEventListener("keyup", function(){
+    let q=this.value.toLowerCase();
+    document.querySelectorAll("#reviewsContainer .review").forEach(r=>{
+        r.style.display=r.innerText.toLowerCase().includes(q)?"block":"none";
+    });
+});
+
+document.getElementById("originalReviewSearch").addEventListener("keyup", function(){
+    let q=this.value.toLowerCase();
+    document.querySelectorAll("#originalReviewsContainer .original-review").forEach(r=>{
+        r.style.display=r.innerText.toLowerCase().includes(q)?"block":"none";
+    });
+});
+
+/* Export CSV (UNCHANGED) */
+document.getElementById("exportReport").addEventListener("click", () => {
+    if(!window.lastAnalyzedReviews){ alert("No data!"); return; }
+    let csv="Review,Sentiment\n";
+    window.lastAnalyzedReviews.forEach(r=>{
+        csv+=`"${r.text.replace(/,/g,"")}","${r.sentiment}"\n`;
+    });
+    let blob=new Blob([csv],{type:'text/csv'});
+    let a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="reviews.csv";
+    a.click();
+});
+
+document.getElementById("collectDataset").addEventListener("click", async () => {
+    const url = (document.getElementById("url").value || "").trim();
+    if (!url.startsWith("http")) {
+        alert("Please enter a valid URL first.");
+        return;
+    }
+
+    spinner.classList.remove("hidden");
+    try {
+        const maxReviews = document.getElementById("maxReviews").value;
+        const formData = new FormData();
+        formData.append("url", url);
+        formData.append("max_reviews", maxReviews);
+        formData.append("include_social", "true");
+
+        const resp = await fetch("/dataset/collect", { method: "POST", body: formData });
+        const data = await resp.json();
+        if (!resp.ok) {
+            throw new Error(data.error || "Dataset collection failed");
+        }
+
+        const a = document.createElement("a");
+        a.href = data.download_url;
+        a.download = data.filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        alert(`Dataset ready: ${data.total_rows} rows (Google: ${data.google_rows}, Social: ${data.social_rows})`);
+    } catch (err) {
+        alert("Dataset error: " + err.message);
+    } finally {
+        spinner.classList.add("hidden");
+    }
+});
+
+// Initial reports load from database history.
+updateDailyAnalytics();
+</script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>
+    lucide.createIcons();
+</script>
+</body>
+</html>

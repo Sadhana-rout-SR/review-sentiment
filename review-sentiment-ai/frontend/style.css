@@ -1,0 +1,219 @@
+:root {
+    --bg: #eef3f6;
+    --ink: #0f1f2d;
+    --muted: #5d6a75;
+    --panel: #ffffff;
+    --line: #d4e0e8;
+    --brand: #0f766e;
+    --brand-2: #1d4ed8;
+    --positive: #15803d;
+    --negative: #b91c1c;
+    --neutral: #b45309;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+    background: radial-gradient(circle at 10% 10%, #d1fae5, transparent 30%),
+                radial-gradient(circle at 90% 0%, #dbeafe, transparent 32%),
+                var(--bg);
+    color: var(--ink);
+}
+
+.container {
+    width: min(1140px, 94%);
+    margin: 1.5rem auto 2.5rem;
+}
+
+.hero {
+    margin-bottom: 1rem;
+}
+
+.hero h1 {
+    margin: 0;
+    font-size: clamp(1.7rem, 2.4vw, 2.4rem);
+}
+
+.hero p {
+    color: var(--muted);
+    margin-top: 0.4rem;
+}
+
+.panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 1rem;
+    box-shadow: 0 10px 22px rgba(15, 31, 45, 0.07);
+    margin-bottom: 1rem;
+}
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem;
+}
+
+label {
+    display: block;
+    font-size: 0.92rem;
+    font-weight: 600;
+    margin-bottom: 0.7rem;
+}
+
+input,
+select,
+textarea,
+button {
+    width: 100%;
+    margin-top: 0.35rem;
+    border-radius: 10px;
+    border: 1px solid #bfd2de;
+    padding: 0.72rem 0.8rem;
+    font: inherit;
+}
+
+button {
+    border: none;
+    margin-top: 0.8rem;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(90deg, var(--brand), var(--brand-2));
+    cursor: pointer;
+}
+
+button:hover {
+    filter: brightness(1.05);
+}
+
+.status {
+    min-height: 1.2rem;
+    margin: 0.55rem 0 0;
+    color: var(--muted);
+}
+
+.metrics-grid,
+.charts-grid {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.metrics-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.metric-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 0.9rem;
+}
+
+.metric-card h3 {
+    margin: 0;
+    font-size: 0.92rem;
+    color: var(--muted);
+}
+
+.metric-card p {
+    margin: 0.45rem 0 0;
+    font-size: 1.45rem;
+    font-weight: 800;
+}
+
+.metric-card.positive p {
+    color: var(--positive);
+}
+
+.metric-card.negative p {
+    color: var(--negative);
+}
+
+.metric-card.neutral p {
+    color: var(--neutral);
+}
+
+.charts-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.chart-panel canvas {
+    min-height: 270px;
+}
+
+.keyword-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.keyword-list li {
+    background: #e2ecff;
+    color: #1e3a8a;
+    border: 1px solid #c0d2ff;
+    border-radius: 999px;
+    padding: 0.3rem 0.65rem;
+    font-weight: 600;
+}
+
+.review-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.review-table th,
+.review-table td {
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+    padding: 0.6rem;
+    font-size: 0.9rem;
+}
+
+.review-table th {
+    color: var(--muted);
+    font-weight: 700;
+}
+
+.badge {
+    display: inline-block;
+    font-size: 0.78rem;
+    border-radius: 999px;
+    padding: 0.2rem 0.48rem;
+    color: #fff;
+    font-weight: 700;
+}
+
+.badge.positive {
+    background: var(--positive);
+}
+
+.badge.negative {
+    background: var(--negative);
+}
+
+.badge.neutral {
+    background: var(--neutral);
+}
+
+.hidden {
+    display: none;
+}
+
+@media (max-width: 900px) {
+    .metrics-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .charts-grid,
+    .grid-2 {
+        grid-template-columns: 1fr;
+    }
+}

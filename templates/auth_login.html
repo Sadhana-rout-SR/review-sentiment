@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Login - Sentilytics</title>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        :root {
+            --bg: #ecf4ff;
+            --card: rgba(255,255,255,0.92);
+            --line: #d8e6fb;
+            --text: #14243b;
+            --muted: #5f6f87;
+            --brand: #1a73e8;
+            --brand-2: #0ea271;
+            --danger: #e5484d;
+            --radius: 18px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+
+            font-family: "Plus Jakarta Sans", sans-serif;
+            color: var(--text);
+
+            background:
+                radial-gradient(circle at top left,
+                rgba(26,115,232,0.18), transparent 35%),
+
+                radial-gradient(circle at bottom right,
+                rgba(14,162,113,0.16), transparent 35%),
+
+                var(--bg);
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 430px;
+
+            background: var(--card);
+            backdrop-filter: blur(14px);
+
+            border: 1px solid rgba(255,255,255,0.5);
+
+            border-radius: 24px;
+
+            padding: 34px;
+
+            box-shadow:
+                0 10px 30px rgba(0,0,0,0.08),
+                0 20px 60px rgba(26,115,232,0.08);
+
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .logo img {
+            width: 75px;
+        }
+
+        h1 {
+            text-align: center;
+            font-family: "Sora", sans-serif;
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.95rem;
+            margin-bottom: 24px;
+        }
+
+        .flash {
+            margin-bottom: 15px;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 0.92rem;
+            border: 1px solid #f2c2c4;
+            background: #fff4f4;
+            color: #8a1f2a;
+        }
+
+        .flash.success {
+            border-color: #bfe7d5;
+            background: #effaf5;
+            color: #126746;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.92rem;
+            font-weight: 600;
+        }
+
+        .input-box {
+            position: relative;
+        }
+
+        .input-box i {
+            position: absolute;
+            top: 50%;
+            left: 14px;
+            transform: translateY(-50%);
+            color: #7b8ba5;
+        }
+
+        input {
+            width: 100%;
+            padding: 13px 14px 13px 44px;
+
+            border-radius: 14px;
+            border: 1px solid #c8daf7;
+
+            font-size: 0.95rem;
+            font-family: inherit;
+
+            transition: 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #90b7f8;
+            box-shadow: 0 0 0 4px rgba(26,115,232,0.13);
+        }
+
+        .show-password {
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+
+        .show-password input {
+            width: auto;
+        }
+
+        .remember-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            margin-top: 14px;
+            margin-bottom: 8px;
+        }
+
+        .remember-row label {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+
+        .remember-row input {
+            width: auto;
+            margin-right: 6px;
+        }
+
+        .remember-left {
+            display: flex;
+            align-items: center;
+        }
+
+        .remember-row a {
+            color: var(--brand);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .remember-row a:hover {
+            text-decoration: underline;
+        }
+
+        button {
+            width: 100%;
+            border: none;
+
+            border-radius: 14px;
+
+            padding: 13px;
+
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: inherit;
+
+            color: white;
+
+            background: linear-gradient(
+                135deg,
+                var(--brand),
+                var(--brand-2)
+            );
+
+            cursor: pointer;
+
+            transition: 0.3s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            opacity: 0.95;
+        }
+
+        .auth-links {
+            margin-top: 20px;
+
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+
+            flex-wrap: wrap;
+        }
+
+        .auth-links a {
+            color: var(--brand);
+            text-decoration: none;
+            font-size: 0.92rem;
+            font-weight: 600;
+        }
+
+        .auth-links a:hover {
+            text-decoration: underline;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 22px;
+            color: #7b8ba5;
+            font-size: 0.82rem;
+        }
+
+        @media (max-width: 500px) {
+            .auth-card {
+                padding: 24px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<form class="auth-card"
+      method="post"
+      action="{{ url_for('auth_login', next=request.args.get('next')) }}">
+
+    <!-- Logo -->
+    <div class="logo">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo">
+    </div>
+
+    <h1>Welcome Back</h1>
+
+
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash {% if category == 'success' %}success{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Email -->
+    <div class="form-group">
+        <label for="login">
+            <i class="fa-solid fa-envelope"></i>
+            Username or Email
+        </label>
+
+        <div class="input-box">
+            <i class="fa-solid fa-user"></i>
+
+            <input
+                id="login"
+                name="login"
+                type="text"
+                placeholder="Enter email or username"
+                required>
+        </div>
+    </div>
+
+    <!-- Password -->
+    <div class="form-group">
+
+        <label for="password">
+            <i class="fa-solid fa-lock"></i>
+            Password
+        </label>
+
+        <div class="input-box">
+            <i class="fa-solid fa-key"></i>
+
+            <input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="Enter password"
+                minlength="8"
+                required>
+        </div>
+
+        <div class="show-password">
+            <input type="checkbox" onclick="togglePassword()">
+            Show Password
+        </div>
+    </div>
+
+    <!-- Remember -->
+    <div class="remember-row">
+
+        <div class="remember-left">
+            <input type="checkbox" name="remember">
+            <label>Remember Me</label>
+        </div>
+
+        <a href="#">Forgot Password?</a>
+
+    </div>
+
+    <!-- Button -->
+    <button type="submit" id="loginBtn">
+        Login
+    </button>
+
+    <!-- Links -->
+    <div class="auth-links">
+        <a href="{{ url_for('auth_register') }}">
+            Create Account
+        </a>
+
+        <a href="{{ url_for('index') }}">
+            Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        © 2026 Sentilytics. All rights reserved.
+    </div>
+
+</form>
+
+<script>
+
+function togglePassword() {
+
+    const password =
+        document.getElementById("password");
+
+    if (password.type === "password") {
+        password.type = "text";
+    }
+    else {
+        password.type = "password";
+    }
+}
+
+document.querySelector("form")
+.addEventListener("submit", function() {
+
+    document.getElementById("loginBtn")
+    .innerHTML = "Logging in...";
+});
+
+</script>
+
+</body>
+</html>

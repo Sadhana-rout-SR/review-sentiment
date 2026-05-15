@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Sentilytics</title>
+    <style>
+        :root {
+            --bg: #eef5ff;
+            --card: #ffffff;
+            --line: #d8e4f8;
+            --text: #15253d;
+            --muted: #60708a;
+            --brand: #1a73e8;
+            --positive: #0ea271;
+            --negative: #e5484d;
+            --neutral: #6b7280;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(1000px 600px at 15% 80%, rgba(26, 115, 232, 0.14), transparent 60%),
+                radial-gradient(700px 520px at 88% 12%, rgba(14, 162, 113, 0.11), transparent 60%),
+                var(--bg);
+        }
+        .container {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 18px;
+            padding: 16px 18px;
+            border-radius: 18px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.9);
+        }
+        .header h1 {
+            margin: 0;
+            font-family: "Sora", "Plus Jakarta Sans", sans-serif;
+            font-size: 1.45rem;
+        }
+        .header-links {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .header-links a {
+            text-decoration: none;
+            border: 1px solid #bfd3f5;
+            border-radius: 999px;
+            padding: 7px 12px;
+            color: #1b5eb9;
+            font-weight: 600;
+            background: #f5f9ff;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .stat {
+            border: 1px solid var(--line);
+            background: var(--card);
+            border-radius: 14px;
+            padding: 14px;
+        }
+        .stat-label {
+            color: var(--muted);
+            font-size: 0.83rem;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-family: "Sora", "Plus Jakarta Sans", sans-serif;
+            font-size: 1.35rem;
+            font-weight: 700;
+        }
+        .card {
+            border: 1px solid var(--line);
+            background: var(--card);
+            border-radius: 18px;
+            padding: 14px;
+            overflow: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 700px;
+        }
+        th, td {
+            border-bottom: 1px solid #e4edf9;
+            text-align: left;
+            padding: 10px;
+            font-size: 0.9rem;
+        }
+        th {
+            background: #f6f9ff;
+            color: #364d71;
+        }
+        .tag {
+            display: inline-flex;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .tag.google { background: var(--positive); }
+        .tag.website { background: var(--brand); }
+        .tag.dataset { background: var(--neutral); }
+        @media (max-width: 900px) {
+            .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .header { flex-direction: column; align-items: flex-start; }
+        }
+        @media (max-width: 520px) {
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Admin Panel</h1>
+            <div class="header-links">
+                <a href="{{ url_for('index') }}">Dashboard</a>
+                <a href="{{ url_for('auth_logout') }}">Logout</a>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat">
+                <div class="stat-label">Total Users</div>
+                <div class="stat-value">{{ stats.total_users }}</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Admin Users</div>
+                <div class="stat-value">{{ stats.total_admins }}</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Total Analysis Runs</div>
+                <div class="stat-value">{{ stats.total_runs }}</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Total Stored Reviews</div>
+                <div class="stat-value">{{ stats.total_reviews }}</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Runs Today</div>
+                <div class="stat-value">{{ stats.runs_today }}</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Latest Analysis Runs</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>URL</th>
+                        <th>Source</th>
+                        <th>Method</th>
+                        <th>Total Reviews</th>
+                        <th>No Real Reviews</th>
+                        <th>Created At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for run in latest_runs %}
+                    <tr>
+                        <td>{{ run.id }}</td>
+                        <td>{{ run.url }}</td>
+                        <td><span class="tag {{ run.review_source }}">{{ run.review_source }}</span></td>
+                        <td>{{ run.review_source_method }}</td>
+                        <td>{{ run.total_reviews }}</td>
+                        <td>{{ 'Yes' if run.no_real_reviews else 'No' }}</td>
+                        <td>{{ run.created_at }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

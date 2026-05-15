@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Sentilytics</title>
+    <style>
+        :root {
+            --bg: #ecf4ff;
+            --card: #ffffff;
+            --line: #d8e6fb;
+            --text: #14243b;
+            --muted: #5f6f87;
+            --brand: #1a73e8;
+            --brand-2: #0ea271;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(900px 600px at 10% 80%, rgba(26, 115, 232, 0.16), transparent 60%),
+                radial-gradient(700px 520px at 90% 10%, rgba(14, 162, 113, 0.13), transparent 60%),
+                var(--bg);
+            padding: 20px;
+        }
+        .auth-card {
+            width: min(460px, 100%);
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            padding: 24px;
+            box-shadow: 0 18px 40px rgba(16, 42, 84, 0.15);
+        }
+        h1 {
+            margin: 0 0 8px;
+            font-family: "Sora", "Plus Jakarta Sans", sans-serif;
+            font-size: 1.5rem;
+        }
+        p {
+            margin: 0 0 18px;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+        .flash {
+            margin-bottom: 12px;
+            border-radius: 12px;
+            padding: 10px 12px;
+            font-size: 0.92rem;
+            border: 1px solid #f2c2c4;
+            background: #fff4f4;
+            color: #8a1f2a;
+        }
+        label {
+            display: block;
+            margin: 10px 0 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        input {
+            width: 100%;
+            border: 1px solid #c8daf7;
+            border-radius: 12px;
+            padding: 11px 12px;
+            font: inherit;
+        }
+        input:focus {
+            outline: none;
+            border-color: #90b7f8;
+            box-shadow: 0 0 0 4px rgba(26, 115, 232, 0.13);
+        }
+        button {
+            margin-top: 16px;
+            width: 100%;
+            border: 0;
+            border-radius: 12px;
+            padding: 12px;
+            color: #fff;
+            font: inherit;
+            font-weight: 700;
+            background: linear-gradient(120deg, var(--brand), var(--brand-2));
+            cursor: pointer;
+        }
+        .auth-links {
+            margin-top: 14px;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        a {
+            color: #1b5eb9;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <form class="auth-card" method="post" action="{{ url_for('auth_register') }}">
+        <h1>Create Account</h1>
+        <p>Register a user account without changing your current analyzer workflow.</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <label for="username">Username</label>
+        <input id="username" name="username" type="text" minlength="3" required>
+
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" required>
+
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" minlength="8" required>
+
+        <label for="confirm_password">Confirm Password</label>
+        <input id="confirm_password" name="confirm_password" type="password" minlength="8" required>
+
+        <button type="submit">Register</button>
+
+        <div class="auth-links">
+            <a href="{{ url_for('auth_login') }}">Already have an account?</a>
+            <a href="{{ url_for('index') }}">Back to dashboard</a>
+        </div>
+    </form>
+</body>
+</html>
