@@ -822,10 +822,12 @@ def analyze():
         # Fallback to website reviews only when Google reviews are not found.
         elapsed = (datetime.utcnow() - started_at).total_seconds()
         if allow_website_fallback and (not url_review_texts) and elapsed < ANALYZE_TIME_BUDGET_SECONDS:
-            url_review_texts = scrape_reviews(url, max_reviews)
+            website_payload = collect_website_original_review_rows(url, max_reviews=max_reviews)
+            website_rows = website_payload.get("rows", [])
+            url_review_texts = [row.get("text", "") for row in website_rows if row.get("text")]
             review_source = "website"
             review_source_method = "website_scraping"
-            review_source_reason = "review_page_fallback" if REAL_REVIEW_ONLY else ""
+            review_source_reason = website_payload.get("reason", "review_page_fallback" if REAL_REVIEW_ONLY else "")
             google_place_name = ""
             google_place_url = ""
         elif (not url_review_texts) and elapsed >= ANALYZE_TIME_BUDGET_SECONDS:
