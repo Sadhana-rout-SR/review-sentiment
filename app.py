@@ -795,18 +795,18 @@ def collect_original_reviews():
         if not is_valid_http_url(url):
             return jsonify({"error": "Please provide a valid http/https URL"}), 400
 
-        website_payload = collect_website_original_review_rows(url, max_reviews=max_reviews)
-        website_rows = website_payload.get("rows", [])
+        google_payload = collect_google_original_review_rows(url, max_reviews=max_reviews)
+        google_rows = google_payload.get("rows", [])
 
-        google_payload = {"rows": [], "reason": "not_attempted"}
-        google_rows = []
-        if not website_rows:
-            google_payload = collect_google_original_review_rows(url, max_reviews=max_reviews)
-            google_rows = google_payload.get("rows", [])
+        website_payload = {"rows": [], "reason": "not_attempted"}
+        website_rows = []
+        if not google_rows:
+            website_payload = collect_website_original_review_rows(url, max_reviews=max_reviews)
+            website_rows = website_payload.get("rows", [])
 
-        rows = website_rows if website_rows else google_rows
-        source = "website" if website_rows else "google"
-        source_reason = website_payload.get("reason", "") if website_rows else google_payload.get("reason", "")
+        rows = google_rows if google_rows else website_rows
+        source = "google" if google_rows else "website"
+        source_reason = google_payload.get("reason", "") if google_rows else website_payload.get("reason", "")
 
         if not rows:
             return jsonify({
@@ -888,7 +888,7 @@ def analyze():
 
         used_page_fallback = False
         fallback_reason = ""
-        if filtered_count == 0:
+        if filtered_count == 0 and not REAL_REVIEW_ONLY:
             fallback_texts = extract_page_text_snippets(url, max_items=min(max_reviews, 24))
             if fallback_texts:
                 url_review_texts = fallback_texts
