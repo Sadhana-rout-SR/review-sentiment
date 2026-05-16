@@ -9,7 +9,7 @@ import re
 import os
 from datetime import datetime, timezone
 import requests
-from urllib.parse import urlparse, quote_plus, urljoin
+from urllib.parse import urlparse, quote_plus, urljoin, unquote
 from bs4 import BeautifulSoup
 import shutil
 
@@ -84,6 +84,9 @@ NAVIGATION_NOISE_TERMS = [
     "privacy", "terms", "settings"
 ]
 
+SCRAPERAPI_KEY = os.getenv("SCRAPERAPI_KEY", "").strip()
+PROXY_URL = os.getenv("PROXY_URL", "").strip()
+
 
 def _looks_like_navigation_noise(text_lower):
     hits = sum(1 for term in NAVIGATION_NOISE_TERMS if term in text_lower)
@@ -129,6 +132,44 @@ def _extract_candidate_review_links(base_url, page_source, limit=6):
         return candidates[:limit]
     except Exception:
         return []
+
+
+def _should_use_proxy(url):
+    lowered = (url or "").lower()
+    if "amazon." in lowered and SCRAPERAPI_KEY:
+        return True
+    return bool(PROXY_URL)
+
+
+def _http_get(url, timeout=10):
+    """GET with optional proxy or ScraperAPI wrapper for blocked domains."""
+    if not url:
+        return None
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        )
+    }
+
+    try:
+        if _should_use_proxy(url) and SCRAPERAPI_KEY:
+            return requests.get(
+                "http://api.scraperapi.com",
+                params={"api_key": SCRAPERAPI_KEY, "url": url, "render": "false"},
+                headers=headers,
+                timeout=timeout,
+            )
+
+        if _should_use_proxy(url) and PROXY_URL:
+            proxies = {"http": PROXY_URL, "https": PROXY_URL}
+            return requests.get(url, headers=headers, timeout=timeout, proxies=proxies)
+
+        return requests.get(url, headers=headers, timeout=timeout)
+    except Exception:
+        return None
 
 def is_review_text(text):
     """Check if text looks like a customer review"""
@@ -537,18 +578,7 @@ def extract_fallback_text(page_source):
 def extract_page_text_snippets(url, max_items=20):
     """Extract readable page snippets when no reviews are available."""
     normalized = _normalize_url(url)
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/120.0.0.0 Safari/537.36"
-        )
-    }
-
-    try:
-        resp = requests.get(normalized, headers=headers, timeout=10)
-    except Exception:
-        return []
+    resp = _http_get(normalized, timeout=10)
 
     if not resp.ok or not resp.text:
         return []
@@ -786,14 +816,7 @@ def _extract_business_query(url):
     candidates = []
 
     try:
-        headers = {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/120.0.0.0 Safari/537.36"
-            )
-        }
-        resp = requests.get(normalized, headers=headers, timeout=8)
+        resp = _http_get(normalized, timeout=8)
         if resp.ok and resp.text:
             soup = BeautifulSoup(resp.text, "html.parser")
             title = soup.title.get_text(strip=True) if soup.title else ""
@@ -829,6 +852,25 @@ def _extract_business_query(url):
 
     primary = cleaned[0] if cleaned else base_name or domain or "business"
     return f"{primary} {domain} reviews".strip()
+
+
+def _extract_maps_place_query(url):
+    """Extract a place name from Google Maps URLs for better Places API search."""
+    parsed = urlparse(url or "")
+    path = (parsed.path or "").strip("/")
+    if not path:
+        return ""
+
+    parts = path.split("/")
+    if "place" in parts:
+        place_index = parts.index("place")
+        if place_index + 1 < len(parts):
+            return unquote(parts[place_index + 1]).replace("+", " ")
+    if "search" in parts:
+        search_index = parts.index("search")
+        if search_index + 1 < len(parts):
+            return unquote(parts[search_index + 1]).replace("+", " ")
+    return ""
 
 
 def _build_chrome_driver():
@@ -924,7 +966,7 @@ def _google_places_reviews_from_api(url, max_reviews=100):
             "place_url": ""
         }
 
-    query = _extract_business_query(url)
+    query = _extract_maps_place_query(url) or _extract_business_query(url)
     try:
         text_search_url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
         text_search_params = {
@@ -1582,14 +1624,6 @@ def collect_website_original_review_rows(url, max_reviews=100):
     max_reviews = max(1, min(int(max_reviews or 100), 300))
     min_target_before_skip_scrape = min(max_reviews, 12)
 
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/120.0.0.0 Safari/537.36"
-        )
-    }
-
     rows = []
     seen = set()
     jsonld_count = 0
@@ -1597,7 +1631,7 @@ def collect_website_original_review_rows(url, max_reviews=100):
     selenium_structured_count = 0
 
     try:
-        resp = requests.get(normalized, headers=headers, timeout=12)
+        resp = _http_get(normalized, timeout=12)
         if resp.ok and resp.text:
             soup = BeautifulSoup(resp.text, "html.parser")
             scripts = soup.find_all("script", type="application/ld+json")
