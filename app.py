@@ -314,6 +314,22 @@ def looks_like_review_page_url(url):
     return any(hint in lowered for hint in review_hints)
 
 
+def looks_like_product_page_url(url):
+    """Heuristic: allow scraping for common commerce product pages that host reviews."""
+    try:
+        parsed = urlparse(url or "")
+    except Exception:
+        return False
+
+    host = (parsed.netloc or "").lower()
+    path = (parsed.path or "").lower()
+
+    if any(domain in host for domain in ["amazon.", "flipkart.", "walmart.", "bestbuy.", "newegg."]):
+        return any(segment in path for segment in ["/dp/", "/gp/product/", "/product/", "/p/", "/products/"])
+
+    return False
+
+
 def parse_max_reviews(value):
     try:
         parsed = int(value)
@@ -817,7 +833,11 @@ def analyze():
         google_place_url = google_result.get("place_url", "")
 
         # In strict mode, only allow website fallback for clear review-page URLs.
-        allow_website_fallback = (not REAL_REVIEW_ONLY) or looks_like_review_page_url(url)
+        allow_website_fallback = (
+            (not REAL_REVIEW_ONLY)
+            or looks_like_review_page_url(url)
+            or looks_like_product_page_url(url)
+        )
 
         # Fallback to website reviews only when Google reviews are not found.
         elapsed = (datetime.utcnow() - started_at).total_seconds()
