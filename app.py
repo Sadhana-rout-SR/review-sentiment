@@ -357,6 +357,28 @@ def parse_int(value, default, min_value, max_value):
     return max(min_value, min(parsed, max_value))
 
 
+def normalize_review_target_url(url):
+    """Rewrite common product URLs to review pages when possible."""
+    if not url:
+        return url
+    lowered = url.lower()
+    if "amazon." in lowered and "/dp/" in lowered:
+        try:
+            parsed = urlparse(url)
+            path = parsed.path or ""
+            parts = [p for p in path.split("/") if p]
+            asin = ""
+            if "dp" in parts:
+                dp_index = parts.index("dp")
+                if dp_index + 1 < len(parts):
+                    asin = parts[dp_index + 1]
+            if asin:
+                return f"{parsed.scheme}://{parsed.netloc}/product-reviews/{asin}/"
+        except Exception:
+            return url
+    return url
+
+
 def save_rows_to_csv(url, rows):
     timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
     safe_part = (urlparse(url).netloc or "dataset").replace("www.", "").replace(".", "_")
@@ -705,6 +727,7 @@ def analytics_daily():
 def collect_dataset():
     try:
         url = (request.form.get("url") or "").strip()
+        url = normalize_review_target_url(url)
         max_reviews = parse_max_reviews(request.form.get("max_reviews", 100))
         include_social = parse_bool(request.form.get("include_social", "true"), default=True)
         include_website = parse_bool(request.form.get("include_website", "true"), default=True)
