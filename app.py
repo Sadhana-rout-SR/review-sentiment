@@ -165,6 +165,9 @@ def enforce_login_for_dashboard_and_analysis():
         "auth_logout",
         "health",
         "static",
+        "analyze",
+        "collect_original_reviews",
+        "collect_dataset",
     }
     if endpoint in public_endpoints:
         return None
