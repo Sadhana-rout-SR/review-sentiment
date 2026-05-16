@@ -873,9 +873,9 @@ def analyze():
                 filtered_count = len(fallback_texts)
                 review_source = "website"
                 review_source_method = "page_text_fallback"
-            review_source_reason = "no_reviews_found"
+                review_source_reason = "no_reviews_found"
                 used_page_fallback = True
-            fallback_reason = "page_text_fallback"
+                fallback_reason = "page_text_fallback"
 
         warning_message = ""
         no_real_reviews = False
