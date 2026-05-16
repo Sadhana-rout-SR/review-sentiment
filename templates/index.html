@@ -737,6 +737,7 @@ document.getElementById("sentimentForm").addEventListener("submit", async e => {
     let formData = new FormData();
     formData.append("url", url);
     formData.append("max_reviews", maxReviews);
+    window.lastAnalyzedUrl = url;
 
     try {
         let resp = await fetch("/analyze", {method:"POST", body:formData});
@@ -774,10 +775,15 @@ document.getElementById("sentimentForm").addEventListener("submit", async e => {
         }
 
         if (sourceLink) {
-            if (data.google_place_url) {
-                sourceLink.href = data.google_place_url;
+            const linkTarget = data.google_place_url || window.lastAnalyzedUrl || url;
+            if (linkTarget) {
+                sourceLink.href = linkTarget;
                 sourceLink.classList.remove("hidden");
-                sourceLink.innerText = data.google_place_name ? `Open ${data.google_place_name}` : "Open Google Place";
+                if (data.google_place_url) {
+                    sourceLink.innerText = data.google_place_name ? `Open ${data.google_place_name}` : "Open Google Place";
+                } else {
+                    sourceLink.innerText = "Open Analyzed URL";
+                }
             } else {
                 sourceLink.classList.add("hidden");
                 sourceLink.removeAttribute("href");
@@ -920,11 +926,12 @@ document.getElementById("sentimentForm").addEventListener("submit", async e => {
         if (container) {
             container.innerHTML="";
             data.url_reviews.forEach((r,i)=>{
+                const reviewLink = data.google_place_url || window.lastAnalyzedUrl || url;
                 container.innerHTML+=`
                 <div class="review ${r.sentiment.toLowerCase()}">
                     <strong>Review ${i+1}</strong>
                     <span class="badge ${r.sentiment.toLowerCase()}">${r.sentiment}</span>
-                    <p>${r.text}</p>
+                    <div class="review-url-link"><a href="${escapeHtml(reviewLink)}" target="_blank" rel="noopener noreferrer">Open analyzed URL</a></div>
                 </div>`;
             });
         }
@@ -976,19 +983,18 @@ document.getElementById("collectOriginalReviews").addEventListener("click", asyn
         }
 
         container.innerHTML = rows.map((row, index) => {
-            const text = escapeHtml(row.text || "");
             const author = escapeHtml(row.author || "Anonymous");
             const rating = escapeHtml(row.rating || "N/A");
             const publishedAt = escapeHtml(row.published_at || "Unknown date");
             const sourceType = escapeHtml(row.source_type || "website");
-            const permalink = row.permalink ? `<a href="${escapeHtml(row.permalink)}" target="_blank" rel="noopener noreferrer">Open Source</a>` : "";
+            const permalinkUrl = row.permalink || window.lastAnalyzedUrl || url;
+            const permalink = permalinkUrl ? `<a href="${escapeHtml(permalinkUrl)}" target="_blank" rel="noopener noreferrer">Open URL</a>` : "";
 
             return `
                 <div class="review original-review">
                     <strong>Customer Review ${index + 1}</strong>
                     <span class="badge neutral">${sourceType}</span>
                     <div class="original-review-meta">By: ${author} | Rating: ${rating} | Date: ${publishedAt}</div>
-                    <p>${text}</p>
                     ${permalink ? `<div class="original-review-link">${permalink}</div>` : ""}
                 </div>
             `;
@@ -1024,9 +1030,10 @@ document.getElementById("originalReviewSearch").addEventListener("keyup", functi
 /* Export CSV (UNCHANGED) */
 document.getElementById("exportReport").addEventListener("click", () => {
     if(!window.lastAnalyzedReviews){ alert("No data!"); return; }
-    let csv="Review,Sentiment\n";
+    const exportUrl = (window.lastAnalyzedUrl || "").replace(/,/g, "");
+    let csv="URL,Sentiment\n";
     window.lastAnalyzedReviews.forEach(r=>{
-        csv+=`"${r.text.replace(/,/g,"")}","${r.sentiment}"\n`;
+        csv+=`"${exportUrl}","${r.sentiment}"\n`;
     });
     let blob=new Blob([csv],{type:'text/csv'});
     let a=document.createElement("a");
