@@ -32,6 +32,7 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 MAX_ALLOWED_REVIEWS = int(os.getenv("MAX_ALLOWED_REVIEWS", "300"))
 ANALYZE_TIME_BUDGET_SECONDS = int(os.getenv("ANALYZE_TIME_BUDGET_SECONDS", "55"))
 REAL_REVIEW_ONLY = os.getenv("REAL_REVIEW_ONLY", "false").strip().lower() in {"1", "true", "yes", "on"}
+APP_VERSION = os.getenv("APP_VERSION", "2026-05-16-page-fallback")
 ADMIN_BOOTSTRAP_USERNAME = os.getenv("ADMIN_USERNAME", "").strip()
 ADMIN_BOOTSTRAP_EMAIL = os.getenv("ADMIN_EMAIL", "").strip().lower()
 ADMIN_BOOTSTRAP_PASSWORD = os.getenv("ADMIN_PASSWORD", "").strip()
@@ -574,7 +575,8 @@ def health():
         "max_allowed_reviews": MAX_ALLOWED_REVIEWS,
         "real_review_only": REAL_REVIEW_ONLY,
         "database": db_status,
-        "database_url": app.config["SQLALCHEMY_DATABASE_URI"]
+        "database_url": app.config["SQLALCHEMY_DATABASE_URI"],
+        "app_version": APP_VERSION,
     })
 
 
@@ -862,6 +864,7 @@ def analyze():
         filtered_count = len(url_review_texts)
 
         used_page_fallback = False
+        fallback_reason = ""
         if filtered_count == 0:
             fallback_texts = extract_page_text_snippets(url, max_items=min(max_reviews, 24))
             if fallback_texts:
@@ -870,8 +873,9 @@ def analyze():
                 filtered_count = len(fallback_texts)
                 review_source = "website"
                 review_source_method = "page_text_fallback"
-                review_source_reason = "no_reviews_found"
+            review_source_reason = "no_reviews_found"
                 used_page_fallback = True
+            fallback_reason = "page_text_fallback"
 
         warning_message = ""
         no_real_reviews = False
@@ -944,7 +948,9 @@ def analyze():
             "google_place_name": google_place_name,
             "google_place_url": google_place_url,
             "no_real_reviews": no_real_reviews,
-            "warning_message": warning_message
+            "warning_message": warning_message,
+            "fallback_used": used_page_fallback,
+            "fallback_reason": fallback_reason,
         })
 
     except Exception as e:
