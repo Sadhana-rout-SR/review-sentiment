@@ -904,7 +904,7 @@ def analyze():
         })
 
     except Exception as e:
-        print(f"Error in analyze route: {e}")
+        print("DEBUG REVIEWS:", url_review_texts)
         return jsonify({"error": "Internal server error while analyzing reviews"}), 500
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
