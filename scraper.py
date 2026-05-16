@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 import requests
 from urllib.parse import urlparse, quote_plus, urljoin
 from bs4 import BeautifulSoup
+import shutil
 
 MAX_SCROLLS = 30
 WAIT_TIME = 2
@@ -584,6 +585,9 @@ def extract_page_text_snippets(url, max_items=20):
 
 
 def scrape_reviews(url, max_reviews=100):
+    if not _chrome_available():
+        print("Chrome not available; skipping Selenium scrape_reviews.")
+        return []
     options = Options()
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1920,1080")
@@ -828,6 +832,8 @@ def _extract_business_query(url):
 
 
 def _build_chrome_driver():
+    if not _chrome_available():
+        return None
     options = Options()
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1920,1080")
@@ -841,6 +847,15 @@ def _build_chrome_driver():
     driver.set_page_load_timeout(20)
     driver.set_script_timeout(20)
     return driver
+
+
+def _chrome_available():
+    if os.getenv("DISABLE_SELENIUM", "").strip().lower() in {"1", "true", "yes", "on"}:
+        return False
+    chrome_bin = os.getenv("CHROME_BIN", "").strip()
+    if chrome_bin:
+        return True
+    return bool(shutil.which("google-chrome") or shutil.which("chromium") or shutil.which("chromium-browser"))
 
 
 def _click_if_present(driver, xpaths, wait=1.5):
@@ -1006,6 +1021,8 @@ def scrape_google_reviews(url, max_reviews=100, use_api=True):
         budget = _scrape_time_budget_seconds()
         print(f"Searching Google Maps with query: {query}")
         driver = _build_chrome_driver()
+        if driver is None:
+            return []
         driver.get(maps_url)
         time.sleep(4)
 
@@ -1437,6 +1454,8 @@ def _extract_website_rows_from_driver(url, max_reviews=100):
 
     try:
         driver = _build_chrome_driver()
+        if driver is None:
+            return []
         driver.get(url)
         time.sleep(4)
 
