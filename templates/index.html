@@ -926,12 +926,11 @@ document.getElementById("sentimentForm").addEventListener("submit", async e => {
         if (container) {
             container.innerHTML="";
             data.url_reviews.forEach((r,i)=>{
-                const reviewLink = data.google_place_url || window.lastAnalyzedUrl || url;
                 container.innerHTML+=`
                 <div class="review ${r.sentiment.toLowerCase()}">
                     <strong>Review ${i+1}</strong>
                     <span class="badge ${r.sentiment.toLowerCase()}">${r.sentiment}</span>
-                    <div class="review-url-link"><a href="${escapeHtml(reviewLink)}" target="_blank" rel="noopener noreferrer">Open analyzed URL</a></div>
+                    <p>${escapeHtml(r.text)}</p>
                 </div>`;
             });
         }
@@ -983,6 +982,7 @@ document.getElementById("collectOriginalReviews").addEventListener("click", asyn
         }
 
         container.innerHTML = rows.map((row, index) => {
+            const text = escapeHtml(row.text || "");
             const author = escapeHtml(row.author || "Anonymous");
             const rating = escapeHtml(row.rating || "N/A");
             const publishedAt = escapeHtml(row.published_at || "Unknown date");
@@ -995,6 +995,7 @@ document.getElementById("collectOriginalReviews").addEventListener("click", asyn
                     <strong>Customer Review ${index + 1}</strong>
                     <span class="badge neutral">${sourceType}</span>
                     <div class="original-review-meta">By: ${author} | Rating: ${rating} | Date: ${publishedAt}</div>
+                    <p>${text}</p>
                     ${permalink ? `<div class="original-review-link">${permalink}</div>` : ""}
                 </div>
             `;
