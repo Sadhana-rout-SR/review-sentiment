@@ -888,10 +888,27 @@ def analyze():
 
         used_page_fallback = False
         fallback_reason = ""
+        if filtered_count == 0:
+            fallback_texts = extract_page_text_snippets(url, max_items=min(max_reviews, 24))
+            if fallback_texts:
+                url_review_texts = fallback_texts
+                raw_count = len(fallback_texts)
+                filtered_count = len(fallback_texts)
+                review_source = "website"
+                review_source_method = "page_text_fallback"
+                review_source_reason = "no_reviews_found"
+                used_page_fallback = True
+                fallback_reason = "page_text_fallback"
 
         warning_message = ""
         no_real_reviews = False
-        if raw_count > 0 and filtered_count == 0:
+        if used_page_fallback:
+            no_real_reviews = True
+            warning_message = (
+                "No review content was found for this URL. "
+                "Showing sentiment for readable page text instead."
+            )
+        elif raw_count > 0 and filtered_count == 0:
             no_real_reviews = True
             warning_message = (
                 "No real customer reviews found for this URL. "
