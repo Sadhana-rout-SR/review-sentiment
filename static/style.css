@@ -126,6 +126,7 @@ body::before {
     padding: 24px;
     max-width: 1480px;
     width: 100%;
+    margin: 0 auto;
 }
 
 .topbar {
@@ -247,6 +248,10 @@ body::before {
     display: none;
 }
 
+.section {
+    max-width: 100%;
+}
+
 .section.active {
     display: block;
 }
@@ -363,6 +368,10 @@ body::before {
     margin-bottom: 14px;
 }
 
+form {
+    width: 100%;
+}
+
 .input-icon {
     position: absolute;
     left: 14px;
@@ -433,6 +442,11 @@ button:active {
 
 .button-group button {
     flex: 1 1 180px;
+}
+
+#reviewCard,
+#originalReviewCard {
+    overflow: hidden;
 }
 
 .stats-grid {
@@ -811,6 +825,7 @@ body.dark-theme .sidebar {
     .topbar {
         align-items: flex-start;
         flex-wrap: wrap;
+        gap: 12px;
     }
 
     .source-badge,
@@ -912,6 +927,10 @@ body.dark-theme .sidebar {
         flex-direction: column;
     }
 
+    .button-group button {
+        flex: 1 1 auto;
+    }
+
     .report-mode-toggle {
         width: 100%;
         display: flex;
@@ -960,6 +979,10 @@ body.dark-theme .sidebar {
 
     .topbar {
         padding: 12px;
+    }
+
+    .topbar-auth-links {
+        gap: 6px;
     }
 
     .topbar h1 {
