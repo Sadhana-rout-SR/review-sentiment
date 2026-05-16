@@ -533,6 +533,56 @@ def extract_fallback_text(page_source):
     return list(set(texts))  # Remove duplicates
 
 
+def extract_page_text_snippets(url, max_items=20):
+    """Extract readable page snippets when no reviews are available."""
+    normalized = _normalize_url(url)
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        )
+    }
+
+    try:
+        resp = requests.get(normalized, headers=headers, timeout=10)
+    except Exception:
+        return []
+
+    if not resp.ok or not resp.text:
+        return []
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+    candidates = []
+    seen = set()
+
+    for tag in soup.find_all(["p", "li", "blockquote"]):
+        text = re.sub(r"\s+", " ", tag.get_text(" ", strip=True)).strip()
+        if not text:
+            continue
+        if len(text) < 60 or len(text) > 280:
+            continue
+        lowered = text.lower()
+        if _looks_like_navigation_noise(lowered):
+            continue
+        if lowered in seen:
+            continue
+        seen.add(lowered)
+        candidates.append(text)
+        if len(candidates) >= max_items:
+            break
+
+    if not candidates:
+        description = ""
+        meta = soup.find("meta", attrs={"name": "description"})
+        if meta and meta.get("content"):
+            description = meta.get("content").strip()
+        if description and len(description) >= 60:
+            candidates.append(description)
+
+    return candidates[:max_items]
+
+
 def scrape_reviews(url, max_reviews=100):
     options = Options()
     options.add_argument("--disable-gpu")
