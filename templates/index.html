@@ -103,6 +103,7 @@
             </h2>
 
             <div id="reviewWarning" class="review-warning hidden"></div>
+            <div id="reviewDebug" class="review-warning hidden"></div>
 
             <!-- Review Search -->
             <div class="input-group">
@@ -762,6 +763,7 @@ document.getElementById("sentimentForm").addEventListener("submit", async e => {
         const sourceBadge = document.getElementById("reviewSourceBadge");
         const sourceLink = document.getElementById("reviewSourceLink");
         const reviewWarning = document.getElementById("reviewWarning");
+        const reviewDebug = document.getElementById("reviewDebug");
         if (sourceBadge) {
             const source = (data.review_source || "website").toLowerCase();
             const method = (data.review_source_method || "").toLowerCase();
@@ -798,6 +800,19 @@ document.getElementById("sentimentForm").addEventListener("submit", async e => {
                 reviewWarning.classList.add("hidden");
                 reviewWarning.innerText = "";
             }
+        }
+
+        if (reviewDebug) {
+            const debugParts = [
+                `Source: ${data.review_source || "n/a"}`,
+                `Method: ${data.review_source_method || "n/a"}`,
+                `Reason: ${data.review_source_reason || "n/a"}`,
+                `Raw: ${data.raw_count ?? "n/a"}`,
+                `Filtered: ${data.filtered_count ?? "n/a"}`,
+                `Fallback: ${data.fallback_used ? "yes" : "no"}`
+            ];
+            reviewDebug.innerText = debugParts.join(" | ");
+            reviewDebug.classList.remove("hidden");
         }
 
         if (!data.url_reviews || !Array.isArray(data.url_reviews) || data.url_reviews.length === 0) {
